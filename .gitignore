@@ -1,0 +1,35 @@
+# Credentials and tokens
+credentials.json
+token.json
+.env
+
+# Virtual environment
+yacht_env/
+venv/
+env/
+
+# Logs
+*.log
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Streamlit
+.streamlit/

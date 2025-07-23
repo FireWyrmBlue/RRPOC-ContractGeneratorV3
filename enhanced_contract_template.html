@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yacht Wet Lease Agreement - {{ vessel_name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+            @top-center {
+                content: "YACHT WET LEASE AGREEMENT - {{ vessel_name|upper }}";
+                font-family: 'Times New Roman', serif;
+                font-size: 10px;
+                color: #666;
+            }
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Times New Roman', serif;
+                font-size: 10px;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .contract-header {
+            text-align: center;
+            border-bottom: 3px solid #1e3a8a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .contract-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .contract-subtitle {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .parties-section {
+            background: linear-gradient(to right, #f8fafc, #e2e8f0);
+            padding: 20px;
+            border-left: 4px solid #1e3a8a;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .party-info {
+            margin-bottom: 15px;
+        }
+
+        .party-label {
+            font-weight: bold;
+            color: #1e3a8a;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .vessel-specs {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .vessel-specs h3 {
+            color: #1e3a8a;
+            margin-top: 0;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 5px;
+        }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .spec-item {
+            padding: 5px 0;
+            border-bottom: 1px dotted #cbd5e1;
+        }
+
+        .spec-label {
+            font-weight: bold;
+            color: #475569;
+        }
+
+        h1 {
+            color: #1e3a8a;
+            font-size: 16px;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            page-break-after: avoid;
+        }
+
+        h2 {
+            color: #3730a3;
+            font-size: 14px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        h3 {
+            color: #4338ca;
+            font-size: 12px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            page-break-after: avoid;
+        }
+
+        .section-content {
+            margin-left: 15px;
+            text-align: justify;
+        }
+
+        .important-clause {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .security-clause {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ef4444;
+        }
+
+        .financial-terms {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .financial-terms h1 {
+            color: #047857;
+            margin-top: 0;
+        }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .payment-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #10b981;
+        }
+
+        .annex-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+
+        .annex-header {
+            background: #1e3a8a;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .annex-content {
+            padding: 15px;
+        }
+
+        .signature-section {
+            margin-top: 40px;
+            page-break-inside: avoid;
+            border-top: 2px solid #1e3a8a;
+            padding-top: 20px;
+        }
+
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .signature-block {
+            border: 1px solid #cbd5e1;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            margin: 15px 0;
+            height: 20px;
+        }
+
+        .witness-section {
+            margin-top: 30px;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 20px;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="contract-header">
+        <div class="contract-title">Yacht Wet Lease Agreement</div>
+        <div class="contract-subtitle">Commercial Charter Contract</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">{{ vessel_name }} - Contract Reference: {{ contract_reference }}</div>
+    </div>
+
+    <div class="parties-section">
+        <div class="party-info">
+            <div class="party-label">Lessor:</div>
+            <strong>{{ lessor_name }}</strong><br>
+            {{ lessor_address }}<br>
+            Company Number: {{ lessor_company }}<br>
+            Maritime License: {{ lessor_license }}
+        </div>
+
+        <div class="party-info">
+            <div class="party-label">Lessee:</div>
+            <strong>{{ lessee_name }}</strong><br>
+            {{ lessee_address }}<br>
+            Company Number: {{ lessee_company }}<br>
+            Charter License: {{ lessee_license }}
+        </div>
+    </div>
+
+    <p><strong>This Yacht Wet Lease Agreement ("Agreement") is made on {{ agreement_date }} between the above parties.</strong></p>
+
+    <h1>1. DEFINITIONS</h1>
+    <div class="section-content">
+        <p><strong>"Wet Lease"</strong> refers to a lease arrangement that includes Yacht, Crew, Maintenance, and Insurance (YCMI).</p>
+        
+        <div class="vessel-specs">
+            <h3>Vessel Specifications</h3>
+            <p><strong>"Yacht"</strong> refers to <span class="highlight">{{ vessel_name }}</span> ({{ yacht_type }}) with the following specifications:</p>
+            
+            <div class="specs-grid">
+                <div class="spec-item">
+                    <span class="spec-label">Official Number:</span> {{ official_number }}
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Flag State:</span> {{ flag_state }}
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">IMO Number:</span> {{ imo_number }}
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Length Overall:</span> {{ length_overall }}m
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Beam:</span> {{ beam }}m
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Draft:</span> {{ draft }}m
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Gross Tonnage:</span> {{ gross_tonnage }} GT
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Year Built:</span> {{ year_built }}
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Builder:</span> {{ builder }}
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Guest Capacity:</span> {{ guest_capacity }} passengers
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Crew Capacity:</span> {{ crew_capacity }} crew members
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">Fuel Capacity:</span> {{ fuel_capacity }} litres
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h1>2. TERM OF LEASE</h1>
+    <div class="section-content">
+        <p><strong>Lease Commencement:</strong> {{ start_date }}<br>
+        <strong>Lease Expiration:</strong> {{ end_date }}<br>
+        <strong>Charter Season:</strong> {{ charter_season }}</p>
+    </div>
+
+    <h1>3. DELIVERY AND REDELIVERY</h1>
+    <div class="section-content">
+        <p><strong>Delivery Location:</strong> {{ delivery_location }}<br>
+        <strong>Redelivery Location:</strong> {{ redelivery_location }}</p>
+        
+        <p>The Yacht shall be delivered in seaworthy condition with all required certificates valid and current, including:</p>
+        <ul>
+            <li>{{ maintenance_standard }} Commercial Yacht Certificate</li>
+            <li>Radio License</li>
+            <li>Safety Equipment Certificate</li>
+            <li>Insurance Certificate</li>
+            <li>Crew Certificates of Competency</li>
+        </ul>
+    </div>
+
+    <h1>4. PERMITTED USE</h1>
+    <div class="section-content">
+        <p>The Yacht shall be operated exclusively for <strong>{{ operation_scope }}</strong> within the geographical limits of <strong>{{ operational_area }}</strong>.</p>
+        
+        <h3>Operational Restrictions:</h3>
+        <ul>
+            <li>Maximum sea state: 5</li>
+            <li>Minimum safe distance from shore: 0.2 nautical miles</li>
+            <li>Prohibited areas: Military zones, Marine protected areas, Shallow waters &lt;15m depth</li>
+            <li>Weather restrictions: No operation in winds exceeding 30 knots</li>
+        </ul>
+    </div>
+
+    <h1>5. CREW AND MAINTENANCE</h1>
+    <div class="section-content">
+        <p>Lessor provides qualified crew of {{ crew_capacity }} members and maintenance as per {{ maintenance_standard }} standards.</p>
+        
+        <h3>Crew Responsibilities:</h3>
+        <ul>
+            <li>Professional operation of the vessel</li>
+            <li>Guest safety and service</li>
+            <li>Daily maintenance and cleaning</li>
+            <li>Navigation and weather monitoring</li>
+            <li>Emergency response procedures</li>
+        </ul>
+    </div>
+
+    <h1>6. FUEL AND OPERATIONAL COSTS</h1>
+    <div class="section-content">
+        <p><strong>Lessee Responsibilities:</strong></p>
+        <ul>
+            <li>Fuel and lubricants (approx. €{{ fuel_cost_daily }}/day)</li>
+            <li>Port charges and marina fees</li>
+            <li>Provisioning and premium beverages</li>
+            <li>Shore excursions and helicopter transfers</li>
+            <li>Communication charges and internet</li>
+            <li>Water sports equipment and toys</li>
+        </ul>
+    </div>
+
+    <div class="financial-terms">
+        <h1>7. PAYMENT TERMS</h1>
+        <div class="payment-grid">
+            <div class="payment-item">
+                <strong>Charter Rate:</strong><br>
+                €{{ daily_rate }} per day
+            </div>
+            <div class="payment-item">
+                <strong>Minimum Period:</strong><br>
+                {{ minimum_days }} days
+            </div>
+            <div class="payment-item">
+                <strong>Payment Schedule:</strong><br>
+                {{ payment_schedule_1 }}% upon signing, {{ payment_schedule_2 }}% {{ payment_timing }}
+            </div>
+            <div class="payment-item">
+                <strong>Security Deposit:</strong><br>
+                €{{ security_deposit }}
+            </div>
+        </div>
+        
+        <h3>Payment Terms:</h3>
+        <ul>
+            <li>All payments to be made in Euros (EUR) via wire transfer</li>
+            <li>Late payment incurs 2% monthly interest charge</li>
+            <li>Security deposit refundable within 30 days post-charter</li>
+            <li>Cancellation fees as per charter market standards</li>
+        </ul>
+    </div>
+
+    <h1>8. INSURANCE</h1>
+    <div class="section-content">
+        <p><strong>Hull Coverage:</strong> ${{ hull_insurance }} USD<br>
+        <strong>Liability Coverage:</strong> ${{ liability_insurance }} USD<br>
+        <strong>Insurer:</strong> {{ insurer }}<br>
+        <strong>Policy Number:</strong> {{ insurance_policy }}</p>
+        
+        <p>Lessee is named as additional insured with waiver of subrogation. Coverage includes:</p>
+        <ul>
+            <li>Hull and machinery damage</li>
+            <li>Third party liability</li>
+            <li>Passenger legal liability</li>
+            <li>Crew injury and illness</li>
+            <li>War and terrorism (if applicable)</li>
+        </ul>
+    </div>
+
+    <h1>9. INDEMNITY AND LIABILITY</h1>
+    <div class="section-content">
+        <p>Each party indemnifies the other against claims arising from its actions or omissions during the charter period.</p>
+        
+        <div class="important-clause">
+            <h3>Limitation of Liability:</h3>
+            <p>Lessor's liability is limited to the vessel's insured value. Neither party shall be liable for consequential, indirect, or punitive damages.</p>
+        </div>
+    </div>
+
+    <h1>10. TITLE AND REGISTRATION</h1>
+    <div class="section-content">
+        <p>Title remains with Lessor at all times. The Yacht remains registered under {{ flag_state }} flag state.</p>
+    </div>
+
+    <h1>11. TERMINATION</h1>
+    <div class="section-content">
+        <p>Either party may terminate this Agreement with {{ termination_notice }} days written notice.</p>
+        
+        <h3>Immediate Termination Events:</h3>
+        <ul>
+            <li>Material breach of contract terms</li>
+            <li>Bankruptcy or insolvency</li>
+            <li>Safety violations or unseaworthiness</li>
+            <li>Force majeure events exceeding 14 days</li>
+        </ul>
+    </div>
+
+    <h1>12. FORCE MAJEURE</h1>
+    <div class="section-content">
+        <p>Neither party is liable for delays due to force majeure events including but not limited to acts of God, war, terrorism, pandemic, or government action.</p>
+    </div>
+
+    <h1>13. GOVERNING LAW AND DISPUTE RESOLUTION</h1>
+    <div class="section-content">
+        <p>This Agreement is governed by the laws of {{ governing_law }}. Disputes shall be settled via {{ dispute_resolution }}.</p>
+    </div>
+
+    <h1>14. RECORDS AND DOCUMENTATION</h1>
+    <div class="section-content">
+        <p>Lessee must maintain accurate logs including:</p>
+        <ul>
+            <li>Navigation and weather logs</li>
+            <li>Engine and maintenance records</li>
+            <li>Guest and crew manifests</li>
+            <li>Fuel consumption records</li>
+            <li>Incident reports (if any)</li>
+        </ul>
+    </div>
+
+    <div class="security-clause">
+        <h1>15. MARITIME SECURITY AND COMPLIANCE</h1>
+        <div class="section-content">
+            <h3>Security Measures:</h3>
+            <ul>
+                <li>ISPS Code compliance for international waters</li>
+                <li>24/7 monitoring and check-in procedures</li>
+                <li>Emergency communication equipment</li>
+                <li>Crew security training certification</li>
+            </ul>
+            
+            <h3>High Risk Areas:</h3>
+            <p>Additional security measures per BMP5 (Best Management Practices) shall be implemented in designated High Risk Areas.</p>
+        </div>
+    </div>
+
+    <h1>16. ENTIRE AGREEMENT</h1>
+    <div class="section-content">
+        <p>This Agreement constitutes the complete understanding between parties. Amendments must be in writing and signed by both parties.</p>
+    </div>
+
+    {% if include_annex_b %}
+    <div class="page-break"></div>
+    <div class="annex-section">
+        <div class="annex-header">Annex B: Insurance Certificate</div>
+        <div class="annex-content">
+            <h3>Insurance Policy Details</h3>
+            <table>
+                <tr>
+                    <th>Coverage Type</th>
+                    <th>Limit</th>
+                    <th>Deductible</th>
+                </tr>
+                <tr>
+                    <td>Hull & Machinery</td>
+                    <td>${{ hull_insurance }}</td>
+                    <td>$50,000</td>
+                </tr>
+                <tr>
+                    <td>Third Party Liability</td>
+                    <td>${{ liability_insurance }}</td>
+                    <td>$25,000</td>
+                </tr>
+                <tr>
+                    <td>Passenger Legal Liability</td>
+                    <td>$2,000,000 per person</td>
+                    <td>$10,000</td>
+                </tr>
+                <tr>
+                    <td>Crew Personal Accident</td>
+                    <td>$1,000,000 per person</td>
+                    <td>$5,000</td>
+                </tr>
+            </table>
+            
+            <h3>Additional Coverage Details</h3>
+            <p>{{ annex_b_content }}</p>
+            
+            <h3>Exclusions</h3>
+            <ul>
+                <li>War and terrorism (unless specifically covered)</li>
+                <li>Nuclear risks</li>
+                <li>Pollution liability beyond statutory requirements</li>
+                <li>Racing and speed trials</li>
+                <li>Operation outside approved areas</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if include_annex_c %}
+    <div class="annex-section">
+        <div class="annex-header">Annex C: Operational Limitations</div>
+        <div class="annex-content">
+            <h3>Weather and Sea State Restrictions</h3>
+            <p>{{ annex_c_content }}</p>
+            
+            <h3>Geographic Limitations</h3>
+            <ul>
+                <li><strong>Approved Areas:</strong> {{ operational_area }}</li>
+                <li><strong>Maximum Distance from Shore:</strong> 50 nautical miles</li>
+                <li><strong>Minimum Water Depth:</strong> 15 meters</li>
+                <li><strong>Prohibited Areas:</strong> Military zones, marine sanctuaries</li>
+            </ul>
+            
+            <h3>Operational Parameters</h3>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Limit</th>
+                    <th>Action Required</th>
+                </tr>
+                <tr>
+                    <td>Wind Speed</td>
+                    <td>30 knots</td>
+                    <td>Seek shelter</td>
+                </tr>
+                <tr>
+                    <td>Wave Height</td>
+                    <td>3 meters</td>
+                    <td>Reduce speed</td>
+                </tr>
+                <tr>
+                    <td>Visibility</td>
+                    <td>1 nautical mile</td>
+                    <td>Use radar navigation</td>
+                </tr>
+                <tr>
+                    <td>Night Operations</td>
+                    <td>Restricted 23:00-06:00</td>
+                    <td>Captain's discretion</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if include_annex_d %}
+    <div class="annex-section">
+        <div class="annex-header">Annex D: Crew Qualifications</div>
+        <div class="annex-content">
+            <h3>Minimum Crew Certification Requirements</h3>
+            <p>{{ annex_d_content }}</p>
+            
+            <h3>Captain Requirements</h3>
+            <ul>
+                <li><strong>License:</strong> Master Mariner or {{ maintenance_standard }} equivalent</li>
+                <li><strong>Experience:</strong> Minimum 10 years commercial yachting</li>
+                <li><strong>Vessel Type Experience:</strong> 3+ years on similar size yacht</li>
+                <li><strong>Medical:</strong> Valid ENG1 or equivalent medical certificate</li>
+                <li><strong>Language:</strong> Fluent English, local language preferred</li>
+            </ul>
+            
+            <h3>Engineering Officer Requirements</h3>
+            <ul>
+                <li><strong>License:</strong> Chief Engineer Class or equivalent</li>
+                <li><strong>Manufacturer Training:</strong> Certified on main engines</li>
+                <li><strong>Systems Knowledge:</strong> Yacht-specific systems training</li>
+                <li><strong>Emergency Response:</strong> Fire fighting and damage control</li>
+            </ul>
+            
+            <h3>Deck and Interior Crew</h3>
+            <ul>
+                <li><strong>STCW:</strong> Basic safety training compliant</li>
+                <li><strong>Guest Service:</strong> Hospitality experience required</li>
+                <li><strong>Water Sports:</strong> RYA Powerboat Level 2 minimum</li>
+                <li><strong>Medical:</strong> Valid medical certificates</li>
+                <li><strong>Security:</strong> ISPS awareness training</li>
+            </ul>
+            
+            <h3>Crew Replacement Policy</h3>
+            <p>In case of crew illness or emergency, Lessor shall provide qualified replacement crew within 24 hours in major ports, 48 hours in remote locations.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if include_annex_e %}
+    <div class="annex-section">
+        <div class="annex-header">Annex E: Regional Compliance</div>
+        <div class="annex-content">
+            <h3>Regulatory Compliance Requirements</h3>
+            <p>{{ annex_e_content }}</p>
+            
+            <h3>Flag State Requirements ({{ flag_state }})</h3>
+            <ul>
+                <li>Valid commercial yacht certificate</li>
+                <li>Annual safety inspection compliance</li>
+                <li>Radio license and call sign registration</li>
+                <li>Waste management certificate</li>
+                <li>Insurance certificate filing</li>
+            </ul>
+            
+            <h3>EU/Mediterranean Compliance</h3>
+            <ul>
+                <li><strong>VAT Requirements:</strong> Proper VAT status documentation</li>
+                <li><strong>Environmental:</strong> MARPOL compliance for waste discharge</li>
+                <li><strong>Customs:</strong> Temporary importation procedures</li>
+                <li><strong>Immigration:</strong> Crew visa and work permit compliance</li>
+                <li><strong>Port State Control:</strong> PSC inspection readiness</li>
+            </ul>
+            
+            <h3>Charter-Specific Compliance</h3>
+            <table>
+                <tr>
+                    <th>Jurisdiction</th>
+                    <th>License Required</th>
+                    <th>Validity</th>
+                </tr>
+                <tr>
+                    <td>Monaco</td>
+                    <td>Commercial Activity License</td>
+                    <td>Annual renewal</td>
+                </tr>
+                <tr>
+                    <td>France</td>
+                    <td>Pavilion de Complaisance</td>
+                    <td>Per charter declaration</td>
+                </tr>
+                <tr>
+                    <td>Italy</td>
+                    <td>Yacht Charter License</td>
+                    <td>Seasonal validity</td>
+                </tr>
+                <tr>
+                    <td>Spain</td>
+                    <td>Charter Activity Authorization</td>
+                    <td>Regional permits</td>
+                </tr>
+            </table>
+            
+            <h3>Guest Documentation Requirements</h3>
+            <ul>
+                <li>Valid passports for all guests</li>
+                <li>Visa requirements for non-EU nationals</li>
+                <li>Guest manifest submission to authorities</li>
+                <li>Health and safety briefing documentation</li>
+                <li>Emergency contact information</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="signature-section">
+        <h1>EXECUTION</h1>
+        <p><strong>IN WITNESS WHEREOF</strong>, the parties have executed this Agreement on the date first written above.</p>
+        
+        <div class="signature-grid">
+            <div class="signature-block">
+                <h3>LESSOR</h3>
+                <p><strong>{{ lessor_name }}</strong></p>
+                <div class="signature-line"></div>
+                <p>Authorized Signature</p>
+                <p><strong>Name:</strong> _________________<br>
+                <strong>Title:</strong> _________________<br>
+                <strong>Date:</strong> _________________</p>
+            </div>
+            
+            <div class="signature-block">
+                <h3>LESSEE</h3>
+                <p><strong>{{ lessee_name }}</strong></p>
+                <div class="signature-line"></div>
+                <p>Authorized Signature</p>
+                <p><strong>Name:</strong> _________________<br>
+                <strong>Title:</strong> _________________<br>
+                <strong>Date:</strong> _________________</p>
+            </div>
+        </div>
+
+        <div class="witness-section">
+            <h3>WITNESS SIGNATURES</h3>
+            <div class="signature-grid">
+                <div class="signature-block">
+                    <p><strong>Witness 1</strong></p>
+                    <div class="signature-line"></div>
+                    <p>Signature</p>
+                    <p><strong>Name:</strong> _________________<br>
+                    <strong>Date:</strong> _________________</p>
+                </div>
+                
+                <div class="signature-block">
+                    <p><strong>Witness 2</strong></p>
+                    <div class="signature-line"></div>
+                    <p>Signature</p>
+                    <p><strong>Name:</strong> _________________<br>
+                    <strong>Date:</strong> _________________</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 10px; color: #666;">
+        <p><strong>Legal Notice:</strong> This contract template is for informational purposes only. Parties should consult with qualified maritime law professionals before executing any charter agreement. Terms and conditions should be reviewed and customized according to applicable local laws and specific business requirements.</p>
+        
+        <p><strong>Generated by Yacht Contract Generator V3</strong> | Contract Reference: {{ contract_reference }} | Generated: {{ agreement_date }}</p>
+    </div>
+</body>
+</html>

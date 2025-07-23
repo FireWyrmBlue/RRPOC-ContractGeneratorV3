@@ -1,0 +1,2 @@
+Requirement already satisfied: python-dateutil in c:\samscorner\localdevelopment\ai\rrpoc-contractgenerator\rrpoc-contractgeneratorv3\yacht_env\lib\site-packages (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in c:\samscorner\localdevelopment\ai\rrpoc-contractgenerator\rrpoc-contractgeneratorv3\yacht_env\lib\site-packages (from python-dateutil) (1.17.0)

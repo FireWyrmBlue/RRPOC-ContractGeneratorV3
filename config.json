@@ -1,0 +1,22 @@
+{
+  "app_name": "Yacht Contract Generator V3",
+  "version": "3.0.0",
+  "yacht_types": {
+    "Superyacht (60m+)": {
+      "base_rate": 75000,
+      "crew_size": 22,
+      "guest_capacity": 16,
+      "fuel_capacity": 45000
+    },
+    "Luxury Yacht (30-60m)": {
+      "base_rate": 35000,
+      "crew_size": 12,
+      "guest_capacity": 12,
+      "fuel_capacity": 20000
+    }
+  },
+  "email_config": {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587
+  }
+}
