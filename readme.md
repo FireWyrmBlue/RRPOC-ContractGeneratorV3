@@ -4,7 +4,7 @@
 A professional maritime charter contract generation platform built with Streamlit. This application generates legally-compliant yacht charter contracts with PDF export, Google Drive integration, email capabilities, and comprehensive analytics.
 
 ## Features
-- ✅ Multiple yacht types (Superyacht, Luxury, Motor, Sport)
+- ✅ Multiple yacht types (Superyacht, Luxury, Motor, Sport).
 - ✅ Professional PDF generation with proper formatting
 - ✅ Google Drive cloud storage integration
 - ✅ Email contracts with attachments
