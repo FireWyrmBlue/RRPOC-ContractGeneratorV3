@@ -235,5 +235,5 @@ This software generates contract templates for informational purposes. Always co
 ---
 
 **Version**: 3.0  
-**Last Updated**: December 2024  
+**Last Updated**: 23/07/2025  
 **Compatible with**: Windows 10/11, Python 3.8+, Streamlit 1.28+
