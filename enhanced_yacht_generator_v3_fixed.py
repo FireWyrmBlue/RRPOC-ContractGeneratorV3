@@ -258,7 +258,7 @@ ENHANCED_CONTRACT_TEMPLATE = """
     {% endif %}
 
     {% if services_clauses %}
-    <h1>4B. SERVICES AND CONCIERGE</h1>
+    <h1>Services</h1>
     {% for clause in services_clauses %}
     <div class="services-clause" style="background: #f0fdf4; border: 1px solid #16a34a; padding: 15px; margin: 15px 0; border-radius: 8px;">
         <h2 style="color: #15803d;">🔧 {{ clause.name }}</h2>
@@ -912,7 +912,7 @@ def generate_pdf_contract(contract_html, filename, contract_data):
                 backColor=colors.HexColor('#f0fdf4')  # Light green background
             )
             
-            content.append(Paragraph("4B. SERVICES AND CONCIERGE", services_heading_style))
+            content.append(Paragraph("Services", services_heading_style))
             content.append(Spacer(1, 8))
             
             for i, clause in enumerate(services_clauses, 1):
