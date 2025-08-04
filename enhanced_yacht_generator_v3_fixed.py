@@ -246,10 +246,25 @@ ENHANCED_CONTRACT_TEMPLATE = """
     <h1>4A. ADDITIONAL SELECTED CLAUSES</h1>
     {% for clause in additional_clauses %}
     <div class="suggested-clause">
-        <h2>{{ clause.name }} {% if clause.source == 'library' %}(From Library){% elif clause.source == 'ai_suggestion' %}(Suggested){% else %}(Custom){% endif %}</h2>
+        <h2>{{ clause.name }}</h2>
         <p>{{ clause.content | replace('\n', '<br>') }}</p>
         {% if clause.category %}
         <p style="font-size: 9px; color: #6b7280; margin-top: 8px;">
+            <strong>Category:</strong> {{ clause.category }}
+        </p>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if services_clauses %}
+    <h1>4B. SERVICES AND CONCIERGE</h1>
+    {% for clause in services_clauses %}
+    <div class="services-clause" style="background: #f0fdf4; border: 1px solid #16a34a; padding: 15px; margin: 15px 0; border-radius: 8px;">
+        <h2 style="color: #15803d;">🔧 {{ clause.name }}</h2>
+        <p>{{ clause.content | replace('\n', '<br>') }}</p>
+        {% if clause.category %}
+        <p style="font-size: 9px; color: #16a34a; margin-top: 8px;">
             <strong>Category:</strong> {{ clause.category }}
         </p>
         {% endif %}
@@ -854,15 +869,13 @@ def generate_pdf_contract(contract_html, filename, contract_data):
         # Additional clauses from Clause Library
         additional_clauses = contract_data.get('additional_clauses', [])
         if additional_clauses:
-            content.append(Paragraph("ADDITIONAL SELECTED CLAUSES", heading_style))
+            content.append(Paragraph("4A. ADDITIONAL SELECTED CLAUSES", heading_style))
             content.append(Spacer(1, 8))
             
             for i, clause in enumerate(additional_clauses, 1):
                 # Clause title with source
                 source_text = ""
-                if clause.get('source') == 'library':
-                    source_text = " (From Library)"
-                elif clause.get('source') == 'ai_suggestion':
+                if clause.get('source') == 'ai_suggestion':
                     source_text = " (Suggested)"
                 elif clause.get('source') == 'custom':
                     source_text = " (Custom)"
@@ -881,6 +894,66 @@ def generate_pdf_contract(contract_html, filename, contract_data):
                     content.append(Paragraph(category_text, 
                         ParagraphStyle('CategoryStyle', parent=styles['Normal'], 
                                      fontSize=8, textColor=colors.HexColor('#6b7280'),
+                                     spaceBefore=2, spaceAfter=8)))
+                
+                content.append(Spacer(1, 8))
+            
+            content.append(Spacer(1, 15))
+        
+        # Services clauses in separate section
+        services_clauses = contract_data.get('services_clauses', [])
+        if services_clauses:
+            # Services section heading with special styling
+            services_heading_style = ParagraphStyle(
+                'ServicesHeading',
+                parent=heading_style,
+                textColor=colors.HexColor('#16a34a'),  # Green color for services
+                borderColor=colors.HexColor('#16a34a'),
+                backColor=colors.HexColor('#f0fdf4')  # Light green background
+            )
+            
+            content.append(Paragraph("4B. SERVICES AND CONCIERGE", services_heading_style))
+            content.append(Spacer(1, 8))
+            
+            for i, clause in enumerate(services_clauses, 1):
+                # Services clause title with special styling
+                source_text = ""
+                if clause.get('source') == 'ai_suggestion':
+                    source_text = " (Suggested)"
+                elif clause.get('source') == 'custom':
+                    source_text = " (Custom)"
+                
+                clause_title = f"🔧 {i}. {clause.get('name', 'Untitled Service')}{source_text}"
+                
+                services_subheading_style = ParagraphStyle(
+                    'ServicesSubHeading',
+                    parent=subheading_style,
+                    textColor=colors.HexColor('#15803d'),  # Darker green
+                    backColor=colors.HexColor('#f0fdf4'),
+                    borderWidth=1,
+                    borderColor=colors.HexColor('#16a34a'),
+                    borderPadding=6
+                )
+                
+                content.append(Paragraph(clause_title, services_subheading_style))
+                content.append(Spacer(1, 4))
+                
+                # Services clause content
+                clause_content = clause.get('content', 'No content available')
+                services_normal_style = ParagraphStyle(
+                    'ServicesNormal',
+                    parent=normal_style,
+                    backColor=colors.HexColor('#f0fdf4'),
+                    borderPadding=8
+                )
+                content.append(Paragraph(clause_content, services_normal_style))
+                
+                # Category with services styling
+                if clause.get('category'):
+                    category_text = f"Category: {clause['category']}"
+                    content.append(Paragraph(category_text, 
+                        ParagraphStyle('ServicesCategoryStyle', parent=styles['Normal'], 
+                                     fontSize=8, textColor=colors.HexColor('#16a34a'),
                                      spaceBefore=2, spaceAfter=8)))
                 
                 content.append(Spacer(1, 8))
@@ -1749,7 +1822,8 @@ def contract_generator_page(systems):
             
             # Contract Clauses
             'suggested_clauses': suggested_clauses,
-            'additional_clauses': st.session_state.get('selected_clauses', []),
+            'additional_clauses': [clause for clause in st.session_state.get('selected_clauses', []) if clause.get('category') != 'Services'],
+            'services_clauses': [clause for clause in st.session_state.get('selected_clauses', []) if clause.get('category') == 'Services'],
             'special_requests': special_requests,
             'governing_law': governing_law,
             'cancellation_policy': cancellation_policy,
@@ -2681,12 +2755,12 @@ def create_new_clause_editor():
         clause_category = st.selectbox(
             "Category",
             ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
-             "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance"]
+             "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance",
+             "Crew Provisions", "Guest Services", "Equipment Standards", "Weather Contingency", 
+             "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services"]
         )
     with col3:
-        clause_complexity = st.selectbox("Complexity Level", ["Basic", "Standard", "Advanced", "Expert"])
-    
-    # Metadata
+        clause_complexity = st.selectbox("Complexity Level", ["Basic", "Standard", "Advanced", "Expert"])    # Metadata
     col1, col2, col3 = st.columns(3)
     with col1:
         clause_jurisdiction = st.multiselect(
@@ -2978,7 +3052,10 @@ d) Insurance certificate must be provided 30 days prior to charter commencement;
     with col1:
         new_category = st.selectbox(
             "Category for New Clause",
-            ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations"],
+            ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations",
+             "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance",
+             "Crew Provisions", "Guest Services", "Equipment Standards", "Weather Contingency", 
+             "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services"],
             key="clone_category"
         )
     with col2:
@@ -3576,7 +3653,7 @@ def clause_builder_section():
         st.markdown("#### 📋 Clause Library")
         
         clause_categories = ["Payment Terms", "Cancellation Policy", "Insurance Requirements", 
-                           "Force Majeure", "Liability", "Vessel Condition", "Crew Provisions"]
+                           "Force Majeure", "Liability", "Vessel Condition", "Crew Provisions", "Services"]
         
         selected_category = st.selectbox("Clause Category", clause_categories, key="clause_category_select")
         
@@ -4429,7 +4506,7 @@ def browse_clauses_section():
     st.subheader("📚 Browse Clause Library")
     
     # Quick category navigation
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         if st.button("💰 Payment Terms", use_container_width=True):
             st.session_state.selected_category = "Payment Terms"
@@ -4446,6 +4523,10 @@ def browse_clauses_section():
         if st.button("⚖️ Liability", use_container_width=True):
             st.session_state.selected_category = "Liability Limitations"
             st.rerun()
+    with col5:
+        if st.button("🔧 Services", use_container_width=True):
+            st.session_state.selected_category = "Services"
+            st.rerun()
     
     # Initialize selected category
     if 'selected_category' not in st.session_state:
@@ -4456,7 +4537,7 @@ def browse_clauses_section():
         "Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
         "Force Majeure", "Dispute Resolution", "Delivery Terms", "Safety Requirements", 
         "Environmental Compliance", "Crew Provisions", "Guest Services", "Equipment Standards",
-        "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy"
+        "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services"
     ]
     
     # Find the current index for the selectbox
@@ -4483,152 +4564,8 @@ def browse_clauses_section():
     
     st.markdown("---")
     
-    # Comprehensive clause database
-    clause_database = {
-        "Payment Terms": [
-            {
-                "name": "Standard 50/50 Payment Schedule",
-                "version": "2.1",
-                "jurisdiction": ["International", "EU", "US"],
-                "language": "English",
-                "usage_count": 1247,
-                "rating": 4.8,
-                "status": "Active",
-                "complexity": "Standard",
-                "last_updated": "2025-07-15",
-                "author": "Maritime Legal Team",
-                "content": """PAYMENT TERMS: The total charter fee shall be paid according to the following schedule:
-a) Fifty percent (50%) of the total charter fee shall be paid as a deposit upon execution of this agreement;
-b) The remaining fifty percent (50%) shall be paid no later than thirty (30) days prior to the charter commencement date;
-c) All payments shall be made in the currency specified in this agreement;
-d) Payment may be made by bank transfer, certified check, or other means as agreed between the parties;
-e) Late payments may incur interest charges at the rate of 1.5% per month or the maximum rate permitted by law, whichever is less.""",
-                "variables": ["total_charter_fee", "currency", "charter_commencement_date"],
-                "applicable_to": ["Bareboat", "Crewed", "Corporate"],
-                "legal_notes": "Compliant with EU Payment Services Directive and US maritime law",
-                "related_clauses": ["Security Deposit", "Cancellation Policy"],
-                "risk_level": "Low"
-            },
-            {
-                "name": "Accelerated Payment Terms",
-                "version": "1.3",
-                "jurisdiction": ["International", "Caribbean"],
-                "language": "English",
-                "usage_count": 342,
-                "rating": 4.5,
-                "status": "Active",
-                "complexity": "Advanced",
-                "last_updated": "2025-06-20",
-                "author": "Charter Finance Team",
-                "content": """ACCELERATED PAYMENT SCHEDULE: For charter bookings made within sixty (60) days of the charter commencement date:
-a) One hundred percent (100%) of the total charter fee is due immediately upon booking confirmation;
-b) No refunds will be provided except as specifically outlined in the Force Majeure clause;
-c) Payment must be received and cleared before charter documents will be released;
-d) Additional fees for expedited processing may apply at the rate of 2.5% of the total charter value.""",
-                "variables": ["total_charter_fee", "charter_commencement_date", "expedited_fee_rate"],
-                "applicable_to": ["Last-minute bookings", "Corporate", "Emergency charters"],
-                "legal_notes": "Higher risk due to accelerated timeline - ensure proper due diligence",
-                "related_clauses": ["Force Majeure", "Document Release"],
-                "risk_level": "Medium"
-            },
-            {
-                "name": "Corporate Net-30 Terms",
-                "version": "1.0",
-                "jurisdiction": ["US", "EU"],
-                "language": "English",
-                "usage_count": 89,
-                "rating": 4.2,
-                "status": "Beta",
-                "complexity": "Advanced",
-                "last_updated": "2025-05-10",
-                "author": "Corporate Legal Team",
-                "content": """CORPORATE PAYMENT TERMS: For qualified corporate clients with approved credit:
-a) Invoice will be issued upon charter completion;
-b) Payment is due within thirty (30) days of invoice date (Net-30);
-c) Client must maintain minimum credit rating of BBB or equivalent;
-d) Personal guarantee may be required from corporate officers;
-e) Right to demand immediate payment or additional security if credit rating falls below threshold.""",
-                "variables": ["corporate_client_name", "credit_rating", "invoice_date"],
-                "applicable_to": ["Corporate"],
-                "legal_notes": "Requires credit check and corporate verification",
-                "related_clauses": ["Credit Requirements", "Personal Guarantee"],
-                "risk_level": "High"
-            }
-        ],
-        "Cancellation Policy": [
-            {
-                "name": "Standard Cancellation Terms",
-                "version": "2.0",
-                "jurisdiction": ["International"],
-                "language": "English",
-                "usage_count": 956,
-                "rating": 4.7,
-                "status": "Active",
-                "complexity": "Standard",
-                "last_updated": "2025-07-10",
-                "author": "Maritime Legal Team",
-                "content": """CANCELLATION POLICY: The following cancellation terms shall apply:
-a) Cancellation more than 90 days prior: 10% cancellation fee of total charter value;
-b) Cancellation 61-90 days prior: 25% cancellation fee;
-c) Cancellation 31-60 days prior: 50% cancellation fee;
-d) Cancellation 0-30 days prior: 100% cancellation fee (no refund);
-e) All cancellation fees are in addition to any third-party costs already incurred.""",
-                "variables": ["total_charter_value", "cancellation_date", "charter_start_date"],
-                "applicable_to": ["All charter types"],
-                "legal_notes": "Graduated scale provides fair balance between client and operator protection",
-                "related_clauses": ["Force Majeure", "Travel Insurance"],
-                "risk_level": "Low"
-            },
-            {
-                "name": "Flexible COVID-19 Cancellation",
-                "version": "1.2",
-                "jurisdiction": ["International"],
-                "language": "English", 
-                "usage_count": 234,
-                "rating": 4.9,
-                "status": "Active",
-                "complexity": "Advanced",
-                "last_updated": "2025-07-01",
-                "author": "Risk Management Team",
-                "content": """COVID-19 CANCELLATION PROTECTION: In addition to standard cancellation terms:
-a) Full refund (minus processing fees) if government travel restrictions prevent charter;
-b) 50% refund if client tests positive for COVID-19 within 14 days of charter;
-c) Rebooking option within 12 months with no penalties if health restrictions apply;
-d) Charter may be postponed up to 48 hours before start date due to health concerns;
-e) All health-related cancellations require official documentation.""",
-                "variables": ["charter_start_date", "processing_fees", "health_documentation"],
-                "applicable_to": ["Post-pandemic bookings", "International travel"],
-                "legal_notes": "Requires verification of health restrictions and documentation",
-                "related_clauses": ["Health Requirements", "Travel Documentation"],
-                "risk_level": "Medium"
-            }
-        ],
-        "Insurance Requirements": [
-            {
-                "name": "Comprehensive Hull Insurance",
-                "version": "2.2", 
-                "jurisdiction": ["International", "EU"],
-                "language": "English",
-                "usage_count": 782,
-                "rating": 4.6,
-                "status": "Active",
-                "complexity": "Standard",
-                "last_updated": "2025-07-12",
-                "author": "Insurance Specialists",
-                "content": """HULL INSURANCE REQUIREMENTS: The vessel must maintain comprehensive marine insurance:
-a) Minimum hull value coverage of USD {{ hull_insurance_amount }};
-b) Coverage must include collision, fire, theft, and total loss;
-c) Policy must name charterer as additional insured party;
-d) Deductible not to exceed 1% of vessel value or USD 10,000, whichever is greater;
-e) Insurance certificate must be provided 30 days prior to charter commencement.""",
-                "variables": ["hull_insurance_amount", "vessel_value", "charter_commencement"],
-                "applicable_to": ["High-value vessels", "Bareboat charters"],
-                "legal_notes": "Essential for vessels over USD 500,000 value",
-                "related_clauses": ["Liability Insurance", "Security Deposit"],
-                "risk_level": "High"
-            }
-        ]
-    }
+    # Get clause database from centralized function
+    clause_database = get_clause_database()
     
     # Merge custom clauses with default database
     if 'custom_clauses' in st.session_state:
@@ -4765,7 +4702,7 @@ e) Insurance certificate must be provided 30 days prior to charter commencement.
         if versioned_clauses_list:
             st.markdown("#### 🔄 Modified Library Clauses")
             for idx, clause in enumerate(versioned_clauses_list):
-                with st.expander(f"📝 {clause['name']} ({clause.get('version', 'v2.0')}) - Modified from Library"):
+                with st.expander(f"📝 {clause['name']} ({clause.get('version', 'v2.0')}) - Modified"):
                     col1, col2 = st.columns([2, 1])
                     
                     with col1:
@@ -5641,6 +5578,194 @@ e) Weather-related delays or cancellations subject to Force Majeure provisions."
                 "related_clauses": ["Force Majeure", "Guest Safety", "Insurance"],
                 "risk_level": "Medium"
             }
+        ],
+        "Services": [
+            {
+                "name": "Standard Concierge Services",
+                "version": "1.0",
+                "jurisdiction": ["International"],
+                "language": "English",
+                "usage_count": 156,
+                "rating": 4.5,
+                "status": "Active",
+                "complexity": "Standard",
+                "last_updated": "2025-08-04",
+                "author": "Services Team",
+                "content": """CONCIERGE SERVICES: The following concierge services are available upon request:
+a) Provisioning coordination and grocery shopping services;
+b) Restaurant reservations and dining recommendations;
+c) Transportation arrangements to/from vessel;
+d) Local activity planning and excursion booking;
+e) Special event coordination for celebrations or business meetings;
+f) Additional services may be available based on location and availability.""",
+                "variables": ["location", "special_events", "dietary_requirements"],
+                "applicable_to": ["Luxury charters", "Corporate events", "Special occasions"],
+                "legal_notes": "Third-party service providers may apply separate terms",
+                "related_clauses": ["Additional Fees", "Third-Party Services"],
+                "risk_level": "Low"
+            },
+            {
+                "name": "Professional Crew Services",
+                "version": "1.0",
+                "jurisdiction": ["International", "EU"],
+                "language": "English",
+                "usage_count": 89,
+                "rating": 4.7,
+                "status": "Active",
+                "complexity": "Advanced",
+                "last_updated": "2025-08-04",
+                "author": "Crew Management Team",
+                "content": """PROFESSIONAL CREW SERVICES: When crew services are included:
+a) Certified captain with appropriate licensing for vessel and charter area;
+b) Professional crew members as required by vessel size and charter type;
+c) All crew wages, insurance, and travel expenses included in charter fee;
+d) Crew quarters and meals provided separately from guest accommodations;
+e) Crew gratuities are additional and at charterer's discretion;
+f) Crew must comply with all safety protocols and maritime regulations.""",
+                "variables": ["crew_size", "captain_license", "crew_qualifications"],
+                "applicable_to": ["Crewed charters", "Luxury vessels", "Commercial operations"],
+                "legal_notes": "Crew certification and insurance requirements vary by jurisdiction",
+                "related_clauses": ["Safety Requirements", "Insurance Coverage", "Gratuities"],
+                "risk_level": "Medium"
+            },
+            {
+                "name": "Essential Maritime Operations",
+                "version": "1.0",
+                "jurisdiction": ["International", "Mediterranean"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.8,
+                "status": "Active",
+                "complexity": "Standard",
+                "last_updated": "2025-08-04",
+                "author": "Maritime Operations Team",
+                "content": """ESSENTIAL MARITIME OPERATIONS: The following services are included within the base charter rate and represent the minimum service standards required for professional yacht operations:
+a) Dedicated maritime operations center providing continuous monitoring and support services;
+b) Real-time weather analysis and optimized routing recommendations based on current sea conditions and meteorological forecasts;
+c) Shore support services encompassing all port coordination activities, including advance clearance procedures, berth reservations, customs documentation, and regulatory compliance management;
+d) Technical support available on a 24-hour basis through qualified marine engineers providing remote diagnostics and troubleshooting assistance;
+e) Strategic spare parts inventory at key Mediterranean locations, enabling parts delivery to major ports within 48 hours of request, subject to customs clearance procedures;
+f) Preventive maintenance program following manufacturer specifications and industry best practices, with particular attention to engine performance monitoring and safety equipment certification requirements.""",
+                "variables": ["operational_region", "support_response_time", "maintenance_schedule"],
+                "applicable_to": ["Professional operations", "Mediterranean charters", "Extended voyages"],
+                "legal_notes": "All maintenance activities documented in accordance with MCA guidelines",
+                "related_clauses": ["Technical Support", "Port Services", "Maintenance Requirements"],
+                "risk_level": "Low"
+            },
+            {
+                "name": "Premium Hospitality Services",
+                "version": "1.0",
+                "jurisdiction": ["International", "Mediterranean"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.7,
+                "status": "Active",
+                "complexity": "Premium",
+                "last_updated": "2025-08-04",
+                "author": "Hospitality Services Team",
+                "content": """PREMIUM HOSPITALITY SERVICES: Enhanced hospitality services are available at a supplementary rate of €8,500 per charter day and include:
+a) Executive chef position requiring Michelin-level training with demonstrated expertise in international cuisine and dietary accommodation capabilities, including kosher, halal, vegetarian, and allergen-free meal preparation;
+b) Professional sommelier services including wine selection, cellar management, and pairing recommendations from an extensive collection of premium vintages curated to complement Mediterranean dining preferences;
+c) Wellness and spa services coordinated through licensed practitioners including certified massage therapists, qualified yoga instructors, and personal fitness trainers (requiring 48-hour advance booking);
+d) Event coordination capabilities extending to formal dinner parties, corporate functions, and celebration planning, including table setting according to international protocol standards, entertainment coordination, and specialized dietary arrangements for multi-course dining experiences.""",
+                "variables": ["daily_rate", "advance_booking_period", "dietary_requirements", "event_type"],
+                "applicable_to": ["Luxury charters", "Corporate events", "Special celebrations"],
+                "legal_notes": "Supplementary services require advance booking and may have separate terms",
+                "related_clauses": ["Additional Fees", "Advance Booking", "Dietary Requirements"],
+                "risk_level": "Medium"
+            },
+            {
+                "name": "Helicopter and Transportation Services",
+                "version": "1.0",
+                "jurisdiction": ["International", "Mediterranean"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.6,
+                "status": "Active",
+                "complexity": "Premium",
+                "last_updated": "2025-08-04",
+                "author": "Transportation Services Team",
+                "content": """HELICOPTER AND TRANSPORTATION SERVICES: Helicopter services are provided through established partnerships with certified operators:
+a) Standard flight operations charged at €3,500 per flight hour with a minimum one-hour booking requirement;
+b) For extended charter periods requiring helicopter standby availability, a daily retainer of €15,000 ensures dedicated aircraft and crew availability within a four-hour response window;
+c) Ground transportation services include luxury vehicle coordination at destination ports, utilizing premium fleet vehicles such as Rolls-Royce, Bentley, and Mercedes S-Class models with professional chauffeur services (requiring 24-hour advance notice);
+d) Private aviation coordination services assist with jet charter bookings, ground handling arrangements, and airport transfer logistics through established relationships with reputable charter operators;
+e) Helicopter operations are subject to weather limitations, local aviation regulations, and landing platform certification requirements. Some ports may impose seasonal restrictions or require advance permits.""",
+                "variables": ["flight_hourly_rate", "daily_retainer", "advance_notice_period", "operational_region"],
+                "applicable_to": ["Ultra-luxury charters", "Corporate transport", "Emergency services"],
+                "legal_notes": "Operations subject to aviation regulations and weather constraints",
+                "related_clauses": ["Weather Limitations", "Advance Booking", "Third-Party Services"],
+                "risk_level": "High"
+            },
+            {
+                "name": "Bespoke Experience Services",
+                "version": "1.0",
+                "jurisdiction": ["International"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.9,
+                "status": "Active",
+                "complexity": "Ultra-Premium",
+                "last_updated": "2025-08-04",
+                "author": "Luxury Experience Team",
+                "content": """BESPOKE EXPERIENCE SERVICES: Ultra-premium services available on a project basis requiring detailed planning and advance coordination:
+a) Celebrity chef experiences, ranging from €25,000 to €75,000 depending on chef reputation and menu complexity, including travel expenses, specialty ingredient procurement, and kitchen staff augmentation;
+b) Live entertainment arrangements with internationally recognized performers, including classical musicians, opera singers, and contemporary artists, typically ranging from €50,000 to €250,000 per engagement based on artist availability, performance requirements, and exclusivity arrangements;
+c) Cultural and educational experiences arranged through local expertise networks, providing access to private museum tours, archaeological site visits, and exclusive shopping experiences at premium retail establishments, priced individually based on complexity and exclusivity requirements;
+d) All bespoke services require detailed planning discussions and written confirmation of arrangements. Cancellation policies may vary depending on contractual commitments with third-party providers.""",
+                "variables": ["celebrity_chef_budget", "entertainment_budget", "cultural_experience_type", "planning_timeline"],
+                "applicable_to": ["Ultra-luxury charters", "Celebrity clients", "Exclusive events"],
+                "legal_notes": "Custom services require detailed planning and separate contractual commitments",
+                "related_clauses": ["Advance Planning", "Third-Party Contracts", "Cancellation Policy"],
+                "risk_level": "High"
+            },
+            {
+                "name": "Service Standards and Performance Metrics",
+                "version": "1.0",
+                "jurisdiction": ["International"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.8,
+                "status": "Active",
+                "complexity": "Standard",
+                "last_updated": "2025-08-04",
+                "author": "Quality Assurance Team",
+                "content": """SERVICE STANDARDS AND PERFORMANCE METRICS: The Lessor commits to specific response time standards for different service categories:
+a) Emergency maritime situations receive immediate response within 15 minutes through the operations center, with technical support personnel available for remote assistance within 30 minutes of initial contact;
+b) On-site technical support is dispatched within four hours where port access permits;
+c) Concierge and hospitality requests are acknowledged within one hour of receipt, with standard fulfillment completed within 24 hours;
+d) Complex arrangements requiring third-party coordination may require extended timeframes, which will be communicated upon request assessment;
+e) Premium and bespoke services require advance booking periods ranging from 48 hours for specialized personnel to seven days for celebrity bookings and major entertainment arrangements;
+f) These timeframes reflect the coordination requirements with external service providers and travel logistics.""",
+                "variables": ["emergency_response_time", "standard_response_time", "advance_booking_requirements"],
+                "applicable_to": ["All service categories", "Professional operations", "Quality assurance"],
+                "legal_notes": "Response times are commitments subject to operational constraints",
+                "related_clauses": ["Emergency Response", "Service Delivery", "Performance Guarantees"],
+                "risk_level": "Medium"
+            },
+            {
+                "name": "Service Guarantee and Remediation",
+                "version": "1.0",
+                "jurisdiction": ["International"],
+                "language": "English",
+                "usage_count": 0,
+                "rating": 4.7,
+                "status": "Active",
+                "complexity": "Standard",
+                "last_updated": "2025-08-04",
+                "author": "Customer Service Team",
+                "content": """SERVICE GUARANTEE AND REMEDIATION: Service quality and delivery guarantees:
+a) In the event that confirmed services cannot be delivered due to Lessor default or operational failure, the Lessee shall receive service credit equal to 200% of the affected service fee;
+b) Service credit may be applied to additional services during the current charter or credited against future charter agreements with the Lessor;
+c) Service modifications and cancellations are accommodated subject to reasonable notice periods: standard premium services may be modified with 24-hour notice, specialized personnel services require 48-hour notice, and celebrity or major entertainment bookings require seven-day advance notice;
+d) Cancellation fees may apply for third-party commitments already contracted;
+e) The Lessor maintains liability insurance covering service delivery failures and will provide evidence of coverage upon request.""",
+                "variables": ["service_credit_rate", "modification_notice_periods", "cancellation_fee_structure"],
+                "applicable_to": ["Service delivery", "Quality guarantees", "Customer protection"],
+                "legal_notes": "Service credits and guarantees subject to operational constraints and force majeure",
+                "related_clauses": ["Service Credits", "Cancellation Policy", "Liability Insurance"],
+                "risk_level": "Low"
+            }
         ]
     }
 
@@ -5767,15 +5892,15 @@ def edit_specific_clause(clause_data):
             ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
              "Force Majeure", "Dispute Resolution", "Delivery Terms", "Safety Requirements", 
              "Environmental Compliance", "Crew Provisions", "Guest Services", "Equipment Standards",
-             "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Custom Clauses"],
+             "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services", "Custom Clauses"],
             index=0 if clause_data['category'] not in ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
                      "Force Majeure", "Dispute Resolution", "Delivery Terms", "Safety Requirements", 
                      "Environmental Compliance", "Crew Provisions", "Guest Services", "Equipment Standards",
-                     "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Custom Clauses"] 
+                     "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services", "Custom Clauses"] 
                   else ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
                         "Force Majeure", "Dispute Resolution", "Delivery Terms", "Safety Requirements", 
                         "Environmental Compliance", "Crew Provisions", "Guest Services", "Equipment Standards",
-                        "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Custom Clauses"].index(clause_data['category']),
+                        "Weather Contingency", "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services", "Custom Clauses"].index(clause_data['category']),
             key="edit_clause_category"
         )
     with col3:
@@ -5894,7 +6019,7 @@ def edit_specific_clause(clause_data):
                     'rating': clause_data.get('rating', 4.0),
                     'usage_count': clause_data.get('usage_count', 0),
                     'author': f"Modified by User ({clause_data.get('author', 'Unknown')})",
-                    'applicable_to': clause_data.get('applicable_to', ['Modified from Library']),
+                    'applicable_to': clause_data.get('applicable_to', ['Modified']),
                     'legal_notes': f'Version {version_number} of library clause. Modified via Clause Editor. Priority: {priority}',
                     'related_clauses': clause_data.get('related_clauses', []),
                     'risk_level': clause_data.get('risk_level', 'Medium'),
@@ -5988,7 +6113,9 @@ def create_new_clause_editor():
         clause_category = st.selectbox(
             "Category",
             ["Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations", 
-             "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance"]
+             "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance",
+             "Crew Provisions", "Guest Services", "Equipment Standards", "Weather Contingency", 
+             "Port Clearance", "Maintenance Terms", "Fuel Policy", "Services"]
         )
     with col3:
         clause_complexity = st.selectbox("Complexity Level", ["Basic", "Standard", "Advanced", "Expert"])
