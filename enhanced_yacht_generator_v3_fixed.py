@@ -4678,7 +4678,7 @@ def browse_clauses_section():
                                 selected_clause = {
                                     'name': clause['name'],
                                     'content': clause['content'],
-                                    'category': 'Custom Clauses',
+                                    'category': clause.get('category', 'Custom Clauses'),
                                     'source': 'custom'
                                 }
                                 
