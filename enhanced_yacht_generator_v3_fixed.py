@@ -1961,6 +1961,7 @@ def contract_generator_page(systems):
 <style>
 /* Lightbox styles scoped to the container */
 /* Pure CSS toggle via checkbox */
+#__CONTAINER__ { --overlay-offset-top: 100px; }
 #__CONTAINER__ .open-preview-btn {
     display: inline-block;
     background: #1e3a8a;
@@ -1987,8 +1988,9 @@ def contract_generator_page(systems):
     inset: 0;
     background: rgba(0,0,0,0.75);
     display: none;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding-top: var(--overlay-offset-top);
     z-index: 100000;
 }
 /* Toggle: show backdrop when checkbox is checked */
@@ -1996,7 +1998,7 @@ def contract_generator_page(systems):
 #__CONTAINER__ .lightbox-content {
     background: #ffffff;
     width: 95vw;
-    height: 95vh;
+    height: calc(95vh - var(--overlay-offset-top));
     max-width: 1600px;
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
