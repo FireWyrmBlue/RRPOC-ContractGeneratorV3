@@ -12,31 +12,82 @@ import plotly.express as px
 import plotly.graph_objects as go
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-from jinja2 import Template
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
-import sqlite3
-from pathlib import Path
 import base64
+import re
+from jinja2 import Template
 
-# Configuration
-DATABASE_FILE = "yacht_contracts.db"
-LOG_FILE = "contract_audit_log.txt"
-TEMPLATES_DIR = "templates"
-VERSIONS_DIR = "versions"
+# Base CSS to ensure consistent contract formatting regardless of embedding context
+ENHANCED_CONTRACT_TEMPLATE_STYLES = """
+<style>
+    :root {
+        --text: #111827;
+        --muted: #374151;
+        --border: #e5e7eb;
+        --accent: #1e3a8a;
+        --accent-2: #3b82f6;
+        --bg-soft: #f8fafc;
+    }
+    html, body { margin: 0; padding: 0; }
+    body {
+        font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        color: var(--text);
+        background: #ffffff;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 24px;
+    }
+    h1 {
+        font-size: 28px;
+        line-height: 1.25;
+        margin: 22px 0 12px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+    }
+    h2 {
+        font-size: 20px;
+        margin: 16px 0 8px;
+        font-weight: 700;
+    }
+    h3 {
+        font-size: 15px;
+        margin: 12px 0 6px;
+        font-weight: 700;
+    }
+    p { margin: 8px 0; color: var(--muted); font-size: 12px; }
+    ul { margin: 8px 0 8px 18px; }
+    li { margin: 4px 0; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 16px;
+        font-size: 12px;
+    }
+    th, td {
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        text-align: left;
+    }
+    th { background: var(--bg-soft); font-weight: 700; }
+    .two-column {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    }
+    @media (max-width: 800px) { .two-column { grid-template-columns: 1fr; } }
+    .suggested-clause {
+        border: 1px solid var(--border); border-left: 4px solid var(--accent-2);
+        background: #fff; padding: 14px; margin: 12px 0; border-radius: 6px;
+    }
+    .services-clause { border-radius: 8px; }
+    .contract-section { margin: 18px 0; }
+    .small-muted { font-size: 10px; color: #6b7280; }
+</style>
+"""
 
-# Enhanced Contract Template with Suggested Clauses
 ENHANCED_CONTRACT_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
+    <meta charset=\"UTF-8\" />
     <title>Yacht Charter Contract - {{ vessel_name }}</title>
     <style>
         body { font-family: 'Times New Roman', serif; font-size: 11px; line-height: 1.4; color: #333; margin: 20px; }
@@ -57,50 +108,50 @@ ENHANCED_CONTRACT_TEMPLATE = """
         th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
         th { background-color: #f1f5f9; font-weight: bold; }
     </style>
+    
 </head>
 <body>
-    <div class="header">
-        <div class="title">Enhanced Yacht Charter Agreement</div>
-        <div style="font-size: 16px; margin: 10px 0;">{{ vessel_name }} - Contract {{ contract_id }}</div>
+    <div class=\"header\">
+        <div class=\"title\">Enhanced Yacht Charter Agreement</div>
+        <div style=\"font-size: 16px; margin: 10px 0;\">{{ vessel_name }} - Contract {{ contract_id }}</div>
         <div>Version {{ version_number }} - {{ agreement_date }}</div>
-        <div style="font-size: 10px; margin-top: 10px;">Template: {{ template_name }} | Language: {{ contract_language }}</div>
+        <div style=\"font-size: 10px; margin-top: 10px;\">Template: {{ template_name }} | Language: {{ contract_language }}</div>
     </div>
 
-    <div class="parties">
-        <div class="two-column">
+    <div class=\"parties\"> 
+        <div class=\"two-column\">
             <div>
-                <strong>LESSOR (Charter Company):</strong><br>
-                <strong>{{ lessor_name }}</strong><br>
-                {{ lessor_address }}<br>
-                <div class="contact-info">
-                    <strong>Contact:</strong> {{ lessor_contact }}<br>
-                    <strong>Email:</strong> {{ lessor_email }}<br>
+                <strong>LESSOR (Charter Company):</strong><br/>
+                <strong>{{ lessor_name }}</strong><br/>
+                {{ lessor_address | safe }}
+                <div class=\"contact-info\">
+                    <strong>Contact:</strong> {{ lessor_contact }}<br/>
+                    <strong>Email:</strong> {{ lessor_email }}<br/>
                     <strong>Phone:</strong> {{ lessor_phone }}
                 </div>
             </div>
             <div>
-                <strong>LESSEE (Charter Client):</strong><br>
-                <strong>{{ lessee_name }}</strong><br>
-                {{ lessee_address }}<br>
-                <div class="contact-info">
-                    <strong>Contact:</strong> {{ lessee_contact }}<br>
-                    <strong>Email:</strong> {{ lessee_email }}<br>
+                <strong>LESSEE (Charter Client):</strong><br/>
+                <strong>{{ lessee_name }}</strong><br/>
+                {{ lessee_address | safe }}
+                <div class=\"contact-info\">
+                    <strong>Contact:</strong> {{ lessee_contact }}<br/>
+                    <strong>Email:</strong> {{ lessee_email }}<br/>
                     <strong>Phone:</strong> {{ lessee_phone }}
                 </div>
             </div>
         </div>
         {% if broker_info %}
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #cbd5e1;">
-            <strong>Broker/Agent:</strong> {{ broker_info }}
-            {% if broker_commission > 0 %}(Commission: {{ broker_commission }}%){% endif %}
+        <div style=\"margin-top: 15px; padding-top: 15px; border-top: 1px solid #cbd5e1;\">
+            <strong>Broker/Agent:</strong> {{ broker_info }}{% if broker_commission %} (Commission: {{ broker_commission }}%){% endif %}
         </div>
         {% endif %}
     </div>
 
     {% if risk_assessment %}
-    <div class="risk-assessment">
+    <div class=\"risk-assessment\">
         <h2>🛡️ Risk Assessment Summary</h2>
-        <div class="two-column">
+        <div class=\"two-column\">
             <div>
                 <p><strong>Overall Risk Score:</strong> {{ risk_assessment.risk_score }} ({{ risk_assessment.risk_category }})</p>
                 <p><strong>Charter Experience:</strong> {{ charter_experience }}</p>
@@ -112,7 +163,6 @@ ENHANCED_CONTRACT_TEMPLATE = """
                 <p><strong>Risk-Adjusted Premium:</strong> {{ risk_assessment.risk_score }}x standard rate</p>
             </div>
         </div>
-        
         {% if risk_assessment.recommendations %}
         <h3>Risk Mitigation Recommendations:</h3>
         <ul>
@@ -121,18 +171,11 @@ ENHANCED_CONTRACT_TEMPLATE = """
         {% endfor %}
         </ul>
         {% endif %}
-        
-        {% if risk_assessment.regional_warnings %}
-        <h3>Regional Warnings:</h3>
-        {% for warning in risk_assessment.regional_warnings %}
-            <p style="color: #dc2626; font-weight: bold;">⚠️ {{ warning }}</p>
-        {% endfor %}
-        {% endif %}
     </div>
     {% endif %}
 
     <h1>1. VESSEL SPECIFICATIONS</h1>
-    <div class="vessel-specs">
+    <div class=\"vessel-specs\">
         <table>
             <tr>
                 <th>Vessel Details</th>
@@ -142,27 +185,27 @@ ENHANCED_CONTRACT_TEMPLATE = """
             </tr>
             <tr>
                 <td>
-                    <strong>Vessel:</strong> {{ vessel_name }}<br>
-                    <strong>Type:</strong> {{ yacht_type }}<br>
-                    <strong>Registration:</strong> {{ official_number }}<br>
+                    <strong>Vessel:</strong> {{ vessel_name }}<br/>
+                    <strong>Type:</strong> {{ yacht_type }}<br/>
+                    <strong>Registration:</strong> {{ official_number }}<br/>
                     <strong>Flag:</strong> {{ flag_state }}
                 </td>
                 <td>
-                    <strong>LOA:</strong> {{ length_overall }}m<br>
-                    <strong>Beam:</strong> {{ beam }}m<br>
-                    <strong>Draft:</strong> {{ draft }}m<br>
+                    <strong>LOA:</strong> {{ length_overall }}m<br/>
+                    <strong>Beam:</strong> {{ beam }}m<br/>
+                    <strong>Draft:</strong> {{ draft }}m<br/>
                     <strong>Engine:</strong> {{ engine_power }} HP
                 </td>
                 <td>
-                    <strong>Max Speed:</strong> {{ max_speed }} knots<br>
-                    <strong>Cruising:</strong> {{ cruising_speed }} knots<br>
-                    <strong>Range:</strong> As per specifications<br>
+                    <strong>Max Speed:</strong> {{ max_speed }} knots<br/>
+                    <strong>Cruising:</strong> {{ cruising_speed }} knots<br/>
+                    <strong>Range:</strong> As per specifications<br/>
                     <strong>Fuel Policy:</strong> {{ fuel_policy }}
                 </td>
                 <td>
-                    <strong>Guests:</strong> {{ guest_capacity }}<br>
-                    <strong>Crew:</strong> {{ crew_capacity }}<br>
-                    <strong>Berths:</strong> As per layout<br>
+                    <strong>Guests:</strong> {{ guest_capacity }}<br/>
+                    <strong>Crew:</strong> {{ crew_capacity }}<br/>
+                    <strong>Berths:</strong> As per layout<br/>
                     <strong>Cabins:</strong> As per specifications
                 </td>
             </tr>
@@ -170,7 +213,7 @@ ENHANCED_CONTRACT_TEMPLATE = """
     </div>
 
     <h1>2. CHARTER TERMS & ITINERARY</h1>
-    <div class="two-column">
+    <div class=\"two-column\">
         <div>
             <p><strong>Charter Period:</strong> {{ start_date }} to {{ end_date }}</p>
             <p><strong>Duration:</strong> {{ charter_duration }} days</p>
@@ -186,18 +229,18 @@ ENHANCED_CONTRACT_TEMPLATE = """
 
     {% if special_requests %}
     <h2>Special Requests & Requirements</h2>
-    <div style="background: #f9fafb; padding: 10px; border-left: 3px solid #6366f1;">
-        {{ special_requests | replace('\n', '<br>') }}
+    <div style=\"background: #f9fafb; padding: 10px; border-left: 3px solid #6366f1;\">
+        {{ special_requests | replace('\n','<br>') | safe }}
     </div>
     {% endif %}
 
     <h1>3. FINANCIAL TERMS</h1>
-    <div class="financial-summary">
-        <div class="two-column">
+    <div class=\"financial-summary\">
+        <div class=\"two-column\">
             <div>
                 <h3>Payment Schedule</h3>
-                <p><strong>Initial Payment:</strong> {{ payment_schedule_1 }}% upon signing</p>
-                <p><strong>Final Payment:</strong> {{ payment_schedule_2 }}% {{ payment_timing }}</p>
+                <p><strong>Initial Payment:</strong> {{ payment_schedule_1 }}</p>
+                <p><strong>Final Payment:</strong> {{ payment_schedule_2 }}</p>
                 <p><strong>Security Deposit:</strong> {{ currency }} {{ security_deposit }}</p>
                 <p><strong>Deposit Method:</strong> {{ deposit_method }}</p>
             </div>
@@ -213,30 +256,26 @@ ENHANCED_CONTRACT_TEMPLATE = """
 
     {% if suggested_clauses %}
     <h1>4. ENHANCED CONTRACT CLAUSES</h1>
-    
     {% if suggested_clauses.force_majeure %}
-    <div class="suggested-clause">
+    <div class=\"suggested-clause\">
         <h2>Force Majeure (Recommended)</h2>
         <p>{{ suggested_clauses.force_majeure }}</p>
     </div>
     {% endif %}
-    
     {% if suggested_clauses.cancellation %}
-    <div class="suggested-clause">
+    <div class=\"suggested-clause\">
         <h2>Cancellation Policy ({{ cancellation_policy }})</h2>
         <p>{{ suggested_clauses.cancellation }}</p>
     </div>
     {% endif %}
-    
     {% if suggested_clauses.weather %}
-    <div class="suggested-clause">
+    <div class=\"suggested-clause\">
         <h2>Weather Limitations (Risk-Adjusted)</h2>
         <p>{{ suggested_clauses.weather }}</p>
     </div>
     {% endif %}
-    
     {% if suggested_clauses.crew_standards %}
-    <div class="suggested-clause">
+    <div class=\"suggested-clause\">
         <h2>Crew Standards (Type-Specific)</h2>
         <p>{{ suggested_clauses.crew_standards }}</p>
     </div>
@@ -246,13 +285,11 @@ ENHANCED_CONTRACT_TEMPLATE = """
     {% if additional_clauses %}
     <h1>4A. ADDITIONAL SELECTED CLAUSES</h1>
     {% for clause in additional_clauses %}
-    <div class="suggested-clause">
+    <div class=\"suggested-clause\">
         <h2>{{ clause.name }}</h2>
-        <p>{{ clause.content | replace('\n', '<br>') }}</p>
+        <p>{{ clause.content | replace('\n','<br>') | safe }}</p>
         {% if clause.category %}
-        <p style="font-size: 9px; color: #6b7280; margin-top: 8px;">
-            <strong>Category:</strong> {{ clause.category }}
-        </p>
+        <p style=\"font-size: 9px; color: #6b7280; margin-top: 8px;\"><strong>Category:</strong> {{ clause.category }}</p>
         {% endif %}
     </div>
     {% endfor %}
@@ -261,13 +298,11 @@ ENHANCED_CONTRACT_TEMPLATE = """
     {% if services_clauses %}
     <h1>Services</h1>
     {% for clause in services_clauses %}
-    <div class="services-clause" style="background: #f0fdf4; border: 1px solid #16a34a; padding: 15px; margin: 15px 0; border-radius: 8px;">
-        <h2 style="color: #15803d;">🔧 {{ clause.name }}</h2>
-        <p>{{ clause.content | replace('\n', '<br>') }}</p>
+    <div class=\"services-clause\" style=\"background: #f0fdf4; border: 1px solid #16a34a; padding: 15px; margin: 15px 0; border-radius: 8px;\">
+        <h2 style=\"color: #15803d;\">🔧 {{ clause.name }}</h2>
+        <p>{{ clause.content | replace('\n','<br>') | safe }}</p>
         {% if clause.category %}
-        <p style="font-size: 9px; color: #16a34a; margin-top: 8px;">
-            <strong>Category:</strong> {{ clause.category }}
-        </p>
+        <p style=\"font-size: 9px; color: #16a34a; margin-top: 8px;\"><strong>Category:</strong> {{ clause.category }}</p>
         {% endif %}
     </div>
     {% endfor %}
@@ -301,94 +336,47 @@ ENHANCED_CONTRACT_TEMPLATE = """
         </tr>
     </table>
 
-    {% if risk_assessment.mitigation_strategies %}
-    <h1>6A. RISK MITIGATION STRATEGIES</h1>
-    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; margin: 15px 0;">
-        <p style="font-weight: bold; color: #0c4a6e; margin-bottom: 15px;">
-            The following risk mitigation strategies have been identified and recommended for this charter based on the comprehensive risk assessment:
-        </p>
-        
-        {% for mitigation in risk_assessment.mitigation_strategies %}
-        <div style="background: white; border-left: 4px solid #0ea5e9; padding: 12px; margin: 10px 0; border-radius: 4px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <h3 style="margin: 0; color: #0c4a6e;">{{ mitigation.name }}</h3>
-                <div style="display: flex; gap: 10px;">
-                    <span style="background: {% if mitigation.effectiveness > 0.7 %}#10b981{% elif mitigation.effectiveness > 0.5 %}#f59e0b{% else %}#ef4444{% endif %}; 
-                                 color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold;">
-                        {{ (mitigation.effectiveness * 100) | round }}% Effective
-                    </span>
-                    <span style="background: {% if mitigation.cost_impact == 'Low' %}#10b981{% elif mitigation.cost_impact == 'Medium' %}#f59e0b{% else %}#ef4444{% endif %}; 
-                                 color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold;">
-                        {{ mitigation.cost_impact }} Cost
-                    </span>
-                </div>
-            </div>
-            <p style="margin: 5px 0; font-size: 11px; color: #374151;">
-                <strong>Description:</strong> {{ mitigation.description }}
-            </p>
-            <p style="margin: 5px 0; font-size: 10px; color: #6b7280;">
-                <strong>Implementation:</strong> {{ mitigation.implementation }}
-            </p>
-        </div>
-        {% endfor %}
-        
-        <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin-top: 15px; border-radius: 4px;">
-            <p style="margin: 0; font-size: 10px; color: #92400e;">
-                <strong>⚠️ Implementation Notice:</strong> The Lessor commits to implementing the above mitigation strategies 
-                where feasible and cost-effective. Some strategies may require additional discussion and mutual agreement between parties.
-                Implementation timeline and specific details shall be confirmed in writing prior to charter commencement.
-            </p>
-        </div>
-    </div>
-    {% endif %}
-
     <h1>6. OPERATIONAL LIMITATIONS & SAFETY</h1>
-    <div class="two-column">
+    <div class=\"two-column\">
         <div>
             <h3>Operational Areas</h3>
             <p>{{ operational_area }}</p>
-            
             <h3>Weather Restrictions</h3>
             <p>As per recommended weather clause above. Captain's discretion applies for safety.</p>
         </div>
         <div>
             <h3>Safety Equipment</h3>
             <p>All safety equipment as per {{ flag_state }} maritime regulations and SOLAS requirements.</p>
-            
             <h3>Crew Qualifications</h3>
             <p>All crew hold valid STCW certifications. Captain certified for {{ yacht_type }} operations.</p>
         </div>
     </div>
 
     <h1>7. TERMS & CONDITIONS</h1>
-    <div style="font-size: 10px; line-height: 1.3;">
-        <div class="two-column">
+    <div style=\"font-size: 10px; line-height: 1.3;\">
+        <div class=\"two-column\">
             <div>
                 <h3>Governing Law</h3>
                 <p>This Agreement is governed by the laws of {{ governing_law }}.</p>
-                
                 <h3>Cancellation Policy</h3>
                 <p>{{ cancellation_policy }} terms apply as detailed in Section 4.</p>
-                
                 <h3>Force Majeure</h3>
                 <p>{% if suggested_clauses.force_majeure %}Force Majeure clause included.{% else %}Standard force majeure terms apply.{% endif %}</p>
             </div>
             <div>
                 <h3>Dispute Resolution</h3>
                 <p>Disputes shall be resolved through arbitration under {{ governing_law }} jurisdiction.</p>
-                
                 <h3>Liability Limitations</h3>
                 <p>Liability limited to charter value except in cases of gross negligence.</p>
-                
                 <h3>Charter Experience Considerations</h3>
                 <p>Charter client experience level: {{ charter_experience }}. Additional briefings may apply.</p>
             </div>
         </div>
     </div>
 
-    <div style="margin-top: 40px; border-top: 3px solid #1e3a8a; padding-top: 20px;">
+    <div style=\"margin-top: 40px; border-top: 3px solid #1e3a8a; padding-top: 20px;\">
         <h1>EXECUTION</h1>
-        <div class="two-column">
+        <div class=\"two-column\">
             <div>
                 <p><strong>LESSOR:</strong> {{ lessor_name }}</p>
                 <p><strong>Representative:</strong> {{ lessor_contact }}</p>
@@ -404,9 +392,8 @@ ENHANCED_CONTRACT_TEMPLATE = """
                 <p>Place: _________________</p>
             </div>
         </div>
-        
         {% if broker_info %}
-        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #cbd5e1;">
+        <div style=\"margin-top: 20px; padding-top: 15px; border-top: 1px solid #cbd5e1;\">
             <p><strong>BROKER/AGENT:</strong> {{ broker_info }}</p>
             <p>Signature: _________________________</p>
             <p>Date: _________________</p>
@@ -414,8 +401,8 @@ ENHANCED_CONTRACT_TEMPLATE = """
         {% endif %}
     </div>
 
-    <div style="margin-top: 30px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 9px;">
-        <div class="two-column">
+    <div style=\"margin-top: 30px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 9px;\">
+        <div class=\"two-column\">
             <div>
                 <p><strong>Generated by Yacht Contract Generator V3</strong></p>
                 <p>Contract ID: {{ contract_id }} | Template: {{ template_name }}</p>
@@ -428,13 +415,19 @@ ENHANCED_CONTRACT_TEMPLATE = """
                 <p>✅ Industry Best Practices</p>
             </div>
         </div>
-        <p style="text-align: center; margin-top: 10px; font-style: italic;">
+        <p style=\"text-align: center; margin-top: 10px; font-style: italic;\">
             This contract includes Risk assessment and clause optimization based on vessel specifications, operational requirements, and charter client profile.
         </p>
     </div>
 </body>
 </html>
 """
+
+# App constants (paths)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_FILE = os.path.join(BASE_DIR, "contracts.db")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+VERSIONS_DIR = os.path.join(BASE_DIR, "versions")
 
 # PDF Generation Function
 def generate_pdf_contract(contract_html, filename, contract_data):
@@ -1698,7 +1691,7 @@ def contract_generator_page(systems):
             st.markdown("#### 📋 Version History")
             st.info("Version history will be available after contract generation and saving new versions.")
     
-    # Contract generation logic (moved outside of form)
+    # Contract generation logic (outside of form, guarded by submitted)
     if submitted:
         # Enhanced risk score calculation using the new risk assessment system
         enhanced_risk_score = 1.0
@@ -1837,16 +1830,16 @@ def contract_generator_page(systems):
             'broker_info': broker_info,
             'broker_commission': broker_commission,
             'contract_language': contract_language
-        }
+    }
         
         # Generate contract
         template = Template(ENHANCED_CONTRACT_TEMPLATE)
         contract_html = template.render(**contract_data)
-        
+
         # Store in session state to persist after form submission
         st.session_state.contract_data = contract_data
         st.session_state.contract_html = contract_html
-        
+
         # Force a rerun to ensure everything refreshes properly
         st.rerun()
     
@@ -1953,16 +1946,22 @@ def contract_generator_page(systems):
 
             # Display contract preview
             st.markdown("#### 📑 Contract Preview")
-            # Full-width Lightbox Preview button and overlay
+            # Full-width Lightbox Preview overlay (pure CSS, no Streamlit rerun dependency)
             try:
-                # Use a data URL to avoid srcdoc escaping issues
-                contract_html_b64 = base64.b64encode(contract_html.encode('utf-8')).decode('ascii')
-                lightbox_container_id = f"lb-{contract_data.get('contract_id', 'preview')}"
-                lightbox_toggle_id = f"lb-toggle-{contract_data.get('contract_id', 'preview')}"
-                lightbox_html = """
+                                # Use a data URL to avoid srcdoc escaping issues
+                                contract_html_b64 = base64.b64encode(contract_html.encode("utf-8")).decode("ascii")
+                                # Sanitize contract_id for safe HTML id usage
+                                _raw_id = str(contract_data.get('contract_id', 'preview'))
+                                _safe_id = re.sub(r"[^a-zA-Z0-9_-]", "-", _raw_id)
+                                lightbox_container_id = f"lb-{_safe_id}"
+                                lightbox_toggle_id = f"lb-toggle-{_safe_id}"
+
+                                # Build HTML with safe token replacement (no .format)
+                                lightbox_html = """
 <style>
 /* Lightbox styles scoped to the container */
-#{container} .open-preview-btn {{
+/* Pure CSS toggle via checkbox */
+#__CONTAINER__ .open-preview-btn {
     display: inline-block;
     background: #1e3a8a;
     color: #fff;
@@ -1973,74 +1972,121 @@ def contract_generator_page(systems):
     cursor: pointer;
     border: none;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}}
-#{container} .open-preview-btn:hover {{
-    background: #0f1f4d;
-}}
-#{container} input[type="checkbox"] {{
-    display: none;
-}}
-#{container} .lightbox-backdrop {{
+}
+#__CONTAINER__ .open-preview-btn:hover { background: #0f1f4d; }
+/* Hide the checkbox off-screen */
+#__CONTAINER__ input[type="checkbox"] {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+#__CONTAINER__ .lightbox-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.75);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
-}}
-#{container} .lightbox-content {{
+    z-index: 100000;
+}
+/* Toggle: show backdrop when checkbox is checked */
+#__CONTAINER__ input#__TOGGLE__:checked ~ .lightbox-backdrop { display: flex; }
+#__CONTAINER__ .lightbox-content {
     background: #ffffff;
     width: 95vw;
     height: 95vh;
     max-width: 1600px;
-    max-height: 95vh;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    position: relative;
-    overflow: hidden;
     border: 1px solid #e5e7eb;
-}}
-#{container} .lightbox-iframe {{
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+#__CONTAINER__ .lightbox-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+#__CONTAINER__ .close-btn {
+    background: #1f2937;
+    color: #ffffff;
+    border: 1px solid #111827;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+#__CONTAINER__ .close-btn:hover { background: #111827; }
+/* Floating close button overlay to ensure clickability over iframe */
+#__CONTAINER__ .close-btn-floating {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 999999;
+}
+#__CONTAINER__ .frame-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 10px;
+    overflow: auto;
+    background: #fff;
+}
+#__CONTAINER__ .lightbox-iframe {
+    width: min(1200px, 100%);
     height: 100%;
     border: 0;
-}}
-#{container} .close-btn {{
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #f1f5f9;
-    color: #111827;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-weight: 600;
-    cursor: pointer;
-    z-index: 1;
-    text-decoration: none;
-}}
-#{container} .close-btn:hover {{
-    background: #e5e7eb;
-}}
-/* Toggle: show backdrop when checkbox is checked */
-#{container} input#{toggle}:checked ~ .lightbox-backdrop {{
-    display: flex;
-}}
+    background: #fff;
+}
 </style>
-<div id="{container}">
-    <label for="{toggle}" class="open-preview-btn">🔍 Open Full-Width Preview</label>
-    <input type="checkbox" id="{toggle}" />
+<div id="__CONTAINER__">
+    <label for="__TOGGLE__" class="open-preview-btn">🔍 Open Full-Width Preview</label>
+    <input type="checkbox" id="__TOGGLE__" />
     <div class="lightbox-backdrop">
+        <label for="__TOGGLE__" class="backdrop-dismiss" aria-hidden="true" title="Close"></label>
         <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Full-width contract preview">
-            <label for="{toggle}" class="close-btn" title="Close">✖</label>
-            <iframe class="lightbox-iframe" src="data:text/html;charset=utf-8;base64,{html_b64}"></iframe>
+            <div class="lightbox-header">
+                <label for="__TOGGLE__" class="close-btn" title="Close">Close ✖</label>
+            </div>
+            <div class="frame-wrap">
+                <label for="__TOGGLE__" class="close-btn close-btn-floating" title="Close">Close ✖</label>
+                <iframe class="lightbox-iframe" src="data:text/html;charset=utf-8;base64,__HTML_B64__"></iframe>
+            </div>
         </div>
     </div>
 </div>
-""".format(container=lightbox_container_id, toggle=lightbox_toggle_id, html_b64=contract_html_b64)
-                st.markdown(lightbox_html, unsafe_allow_html=True)
+<style>
+/* Backdrop click-to-close layer */
+#__CONTAINER__ .backdrop-dismiss {
+    position: absolute;
+    inset: 0;
+    content: "";
+}
+</style>
+"""
+                                lightbox_html = (
+                                        lightbox_html
+                                        .replace("__CONTAINER__", lightbox_container_id)
+                                        .replace("__HTML_B64__", contract_html_b64)
+                                        .replace("__TOGGLE__", lightbox_toggle_id)
+                                )
+
+                                st.markdown(lightbox_html, unsafe_allow_html=True)
             except Exception:
+                # Silently ignore overlay errors to avoid breaking the page
                 pass
             with st.expander("View Full Contract", expanded=True):
                 # Ensure the preview uses (near) full page width instead of Streamlit's default 700px
