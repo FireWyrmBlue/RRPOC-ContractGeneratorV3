@@ -1952,6 +1952,100 @@ def contract_generator_page(systems):
 
             # Display contract preview
             st.markdown("#### 📑 Contract Preview")
+            # Full-width Lightbox Preview button and overlay
+            try:
+                contract_html_escaped = (
+                    contract_html
+                    .replace("&", "&amp;")
+                    .replace('"', "&quot;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                )
+                lightbox_container_id = f"lb-{contract_data.get('contract_id', 'preview')}"
+                lightbox_toggle_id = f"lb-toggle-{contract_data.get('contract_id', 'preview')}"
+                lightbox_html = """
+<style>
+/* Lightbox styles scoped to the container */
+#{container} .open-preview-btn {{
+    display: inline-block;
+    background: #1e3a8a;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}}
+#{container} .open-preview-btn:hover {{
+    background: #0f1f4d;
+}}
+#{container} input[type="checkbox"] {{
+    display: none;
+}}
+#{container} .lightbox-backdrop {{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}}
+#{container} .lightbox-content {{
+    background: #ffffff;
+    width: 95vw;
+    height: 95vh;
+    max-width: 1600px;
+    max-height: 95vh;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}}
+#{container} .lightbox-iframe {{
+    width: 100%;
+    height: 100%;
+    border: 0;
+}}
+#{container} .close-btn {{
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #f1f5f9;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 1;
+    text-decoration: none;
+}}
+#{container} .close-btn:hover {{
+    background: #e5e7eb;
+}}
+/* Toggle: show backdrop when checkbox is checked */
+#{container} input#{toggle}:checked ~ .lightbox-backdrop {{
+    display: flex;
+}}
+</style>
+<div id="{container}">
+    <label for="{toggle}" class="open-preview-btn">🔍 Open Full-Width Preview</label>
+    <input type="checkbox" id="{toggle}" />
+    <div class="lightbox-backdrop">
+        <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Full-width contract preview">
+            <label for="{toggle}" class="close-btn" title="Close">✖</label>
+            <iframe class="lightbox-iframe" srcdoc="{html}"></iframe>
+        </div>
+    </div>
+</div>
+""".format(container=lightbox_container_id, toggle=lightbox_toggle_id, html=contract_html_escaped)
+                st.markdown(lightbox_html, unsafe_allow_html=True)
+            except Exception:
+                pass
             with st.expander("View Full Contract", expanded=True):
                 # Ensure the preview uses (near) full page width instead of Streamlit's default 700px
                 # Increase height slightly for a better reading experience
@@ -2183,7 +2277,7 @@ def template_library_section():
     
     st.markdown("---")
     
-    if selected_template == "Create New Template":
+    if template_select == "Create New Template":
         st.markdown("### 🆕 Create New Template")
         
         col1, col2, col3 = st.columns(3)
@@ -2280,6 +2374,11 @@ PAYMENT TERMS: The charter fee shall be paid as follows:
     with col1:
         clause_title = st.text_input("Clause Title", placeholder="e.g., Custom Payment Terms", key="custom_clause_title")
     with col2:
+        clause_categories = [
+            "Payment Terms", "Cancellation Policy", "Insurance Requirements", "Liability Limitations",
+            "Force Majeure", "Dispute Resolution", "Safety Requirements", "Environmental Compliance",
+            "Crew Provisions", "Guest Services", "Equipment Standards", "Weather Contingency", "Services"
+        ]
         clause_category = st.selectbox("Category", clause_categories, key="new_clause_category")
     with col3:
         clause_priority = st.selectbox("Priority", ["Standard", "Important", "Critical"], key="custom_clause_priority")
@@ -2737,6 +2836,7 @@ def clause_library_search_section():
     
     st.markdown("---")
     
+    editor_mode = st.session_state.get("editor_mode")
     if editor_mode == "Create New Clause":
         create_new_clause_editor()
     elif editor_mode == "Edit Existing Clause":
