@@ -23,6 +23,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 import sqlite3
 from pathlib import Path
+import base64
 
 # Configuration
 DATABASE_FILE = "yacht_contracts.db"
@@ -1954,13 +1955,8 @@ def contract_generator_page(systems):
             st.markdown("#### 📑 Contract Preview")
             # Full-width Lightbox Preview button and overlay
             try:
-                contract_html_escaped = (
-                    contract_html
-                    .replace("&", "&amp;")
-                    .replace('"', "&quot;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                )
+                # Use a data URL to avoid srcdoc escaping issues
+                contract_html_b64 = base64.b64encode(contract_html.encode('utf-8')).decode('ascii')
                 lightbox_container_id = f"lb-{contract_data.get('contract_id', 'preview')}"
                 lightbox_toggle_id = f"lb-toggle-{contract_data.get('contract_id', 'preview')}"
                 lightbox_html = """
@@ -2038,11 +2034,11 @@ def contract_generator_page(systems):
     <div class="lightbox-backdrop">
         <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Full-width contract preview">
             <label for="{toggle}" class="close-btn" title="Close">✖</label>
-            <iframe class="lightbox-iframe" srcdoc="{html}"></iframe>
+            <iframe class="lightbox-iframe" src="data:text/html;charset=utf-8;base64,{html_b64}"></iframe>
         </div>
     </div>
 </div>
-""".format(container=lightbox_container_id, toggle=lightbox_toggle_id, html=contract_html_escaped)
+""".format(container=lightbox_container_id, toggle=lightbox_toggle_id, html_b64=contract_html_b64)
                 st.markdown(lightbox_html, unsafe_allow_html=True)
             except Exception:
                 pass
