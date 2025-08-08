@@ -1953,7 +1953,9 @@ def contract_generator_page(systems):
             # Display contract preview
             st.markdown("#### 📑 Contract Preview")
             with st.expander("View Full Contract", expanded=True):
-                st.components.v1.html(contract_html, height=600, scrolling=True)
+                # Ensure the preview uses (near) full page width instead of Streamlit's default 700px
+                # Increase height slightly for a better reading experience
+                st.components.v1.html(contract_html, height=700, scrolling=True, width=1200)
             
             # Download options
             st.markdown("#### 📥 Download Options")
